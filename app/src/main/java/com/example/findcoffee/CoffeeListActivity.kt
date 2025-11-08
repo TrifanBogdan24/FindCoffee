@@ -62,7 +62,7 @@ fun CoffeeListScreen(coffees: List<String>, ip: String, port: String) {
 fun CoffeeCard(coffeeName: String, ip: String, port: String) {
     val context = LocalContext.current
     val imageName = coffeeName.lowercase().replace(" ", "_")
-    val imageUrl = "http://$ip:$port/images/$imageName"
+    val imageUrl = "http://$ip:$port/images/coffee_list/$imageName"
 
     Card(
         modifier = Modifier
