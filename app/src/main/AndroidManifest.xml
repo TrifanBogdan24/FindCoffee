@@ -33,6 +33,11 @@
         <activity android:name=".ConnectActivity" />
         <activity android:name=".CoffeeListActivity" />
 
+        <activity
+            android:name=".CoffeeSizeActivity"
+            android:exported="true"
+            android:label="Select Coffee Size"
+            android:theme="@style/Theme.FindCoffee" />
     </application>
 
 

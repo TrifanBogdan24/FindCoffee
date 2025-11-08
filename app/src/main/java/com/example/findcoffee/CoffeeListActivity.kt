@@ -1,5 +1,6 @@
 package com.example.findcoffee
 
+import androidx.compose.foundation.clickable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -22,6 +23,7 @@ import kotlinx.coroutines.*
 import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
+import android.content.Intent
 
 class CoffeeListActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,7 +69,15 @@ fun CoffeeCard(coffeeName: String, ip: String, port: String) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(250.dp),
+            .height(250.dp)
+            .clickable {
+                val intent = Intent(context, CoffeeSizeActivity::class.java).apply {
+                    putExtra("IP", ip)
+                    putExtra("PORT", port)
+                    putExtra("COFFEE_NAME", coffeeName.lowercase().replace(" ", "_"))
+                }
+                context.startActivity(intent)
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column(
