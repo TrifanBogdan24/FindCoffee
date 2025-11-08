@@ -40,6 +40,7 @@ class CoffeeListActivity : ComponentActivity() {
                     coffees = getCoffees(ip, port)
                 }
 
+                ConnectionMonitor() // monitorizare globala
                 CoffeeListScreen(coffees = coffees, ip = ip, port = port)
             }
         }

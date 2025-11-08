@@ -36,6 +36,8 @@ class CoffeeSizeActivity : ComponentActivity() {
         val coffeeName = intent.getStringExtra("COFFEE_NAME") ?: ""
 
         setContent {
+            ConnectionMonitor() // monitorizare globala
+
             CoffeeSizeScreen(ip = ip, port = port, coffeeName = coffeeName, onClose = { finish() })
         }
     }

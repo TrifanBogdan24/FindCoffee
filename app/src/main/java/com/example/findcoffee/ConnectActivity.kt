@@ -21,6 +21,8 @@ class ConnectActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             FindCoffeeTheme {
+                ConnectionMonitor() // monitorizare globala
+
                 ConnectionScreen(onSuccess = { ip, port ->
                     val intent = Intent(this, CoffeeListActivity::class.java)
                     intent.putExtra("IP", ip)
