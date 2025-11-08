@@ -181,7 +181,7 @@ suspend fun getFinalVolume(
 ): String? = withContext(Dispatchers.IO) {
     try {
         val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-        val url = URL("http://$cleanIp:$port/coffees/$coffeeName/size/$sizeName/final_volume")
+        val url = URL("http://$cleanIp:$port/coffees/$coffeeName/$sizeName/final_volume")
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 5000
