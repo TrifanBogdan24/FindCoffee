@@ -11,18 +11,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.findcoffee.ui.theme.FindCoffeeTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import com.example.findcoffee.ui.theme.FindCoffeeTheme
-import androidx.compose.ui.platform.LocalContext
 
-class CoffeeIngredientsActivity : ComponentActivity() {
+class CoffeeStepsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -33,7 +33,7 @@ class CoffeeIngredientsActivity : ComponentActivity() {
 
         setContent {
             FindCoffeeTheme {
-                CoffeeIngredientsScreen(
+                CoffeeStepsScreen(
                     ip = ip,
                     port = port,
                     coffeeName = coffeeName,
@@ -47,37 +47,35 @@ class CoffeeIngredientsActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CoffeeIngredientsScreen(
+fun CoffeeStepsScreen(
     ip: String,
     port: String,
     coffeeName: String,
     sizeName: String,
     onClose: () -> Unit
 ) {
-    var ingredientsMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
-    var selectedIngredients by remember { mutableStateOf(setOf<String>()) }
     val context = LocalContext.current
+    var steps by remember { mutableStateOf<Map<Int, Step>>(emptyMap()) }
+    var currentStep by remember { mutableStateOf(1) }
 
-    // Fetch ingredients on load
+    // Fetch steps on load
     LaunchedEffect(Unit) {
-        ingredientsMap = getCoffeeIngredients(ip, port, coffeeName, sizeName)
+        steps = getCoffeeSteps(ip, port, coffeeName)
     }
+
+    val totalSteps = steps.size
+    val step = steps[currentStep]
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Ingredients", fontSize = 24.sp, fontWeight = FontWeight.Bold) },
+                title = { Text("Preparation Steps", fontSize = 22.sp, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     Text(
                         "X",
                         modifier = Modifier
                             .padding(16.dp)
-                            .clickable {
-                                val intent = Intent(context, CoffeeListActivity::class.java).apply {
-                                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                                }
-                                context.startActivity(intent)
-                            },
+                            .clickable { onClose() },
                         fontSize = 20.sp
                     )
                 }
@@ -90,15 +88,19 @@ fun CoffeeIngredientsScreen(
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // PREV
                 Button(
                     onClick = {
-                        val intent = Intent(context, CoffeeSizeActivity::class.java).apply {
-                            putExtra("IP", ip)
-                            putExtra("PORT", port)
-                            putExtra("COFFEE_NAME", coffeeName)
+                        if (currentStep == 1) {
+                            val intent = Intent(context, CoffeeIngredientsActivity::class.java).apply {
+                                putExtra("IP", ip)
+                                putExtra("PORT", port)
+                                putExtra("COFFEE_NAME", coffeeName)
+                                putExtra("SIZE_NAME", sizeName)
+                            }
+                            context.startActivity(intent)
+                        } else {
+                            currentStep = (currentStep - 1).coerceAtLeast(1)
                         }
-                        context.startActivity(intent)
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(8.dp)
@@ -106,16 +108,14 @@ fun CoffeeIngredientsScreen(
                     Text("⬅\uFE0F PREV", fontSize = 18.sp)
                 }
 
-                // NEXT
                 Button(
                     onClick = {
-                        val intent = Intent(context, CoffeeStepsActivity::class.java).apply {
-                            putExtra("IP", ip)
-                            putExtra("PORT", port)
-                            putExtra("COFFEE_NAME", coffeeName)
-                            putExtra("SIZE_NAME", sizeName)
+                        if (currentStep < totalSteps) {
+                            currentStep++
+                        } else {
+                            // TODO: implement
+                            onClose()
                         }
-                        context.startActivity(intent)
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(8.dp)
@@ -125,57 +125,61 @@ fun CoffeeIngredientsScreen(
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            ingredientsMap.forEach { (name, amount) ->
-                val isSelected = selectedIngredients.contains(name)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+        if (step != null) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Progress bar
+                LinearProgressIndicator(
+                    progress = if (totalSteps > 0) currentStep / totalSteps.toFloat() else 0f,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            selectedIngredients = if (isSelected) {
-                                selectedIngredients - name
-                            } else {
-                                selectedIngredients + name
-                            }
-                        }
-                        .padding(vertical = 8.dp)
-                ) {
-                    Text(
-                        text = "• $amount ${name.replace("_", " ").replaceFirstChar { it.uppercase() }}",
-                        fontSize = 20.sp,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Checkbox(
-                        checked = isSelected,
-                        onCheckedChange = {
-                            selectedIngredients = if (it) {
-                                selectedIngredients + name
-                            } else {
-                                selectedIngredients - name
-                            }
-                        }
-                    )
-                }
+                        .height(8.dp)
+                        .padding(horizontal = 16.dp)
+                )
+
+                // Step title
+                Text(
+                    text = "Step $currentStep of $totalSteps",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = step.title,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = step.description,
+                    fontSize = 18.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
         }
     }
 }
 
+data class Step(val title: String, val description: String)
 
-
-
-suspend fun getCoffeeIngredients(ip: String, port: String, coffeeName: String, sizeName: String): Map<String, String> =
+suspend fun getCoffeeSteps(ip: String, port: String, coffeeName: String): Map<Int, Step> =
     withContext(Dispatchers.IO) {
         try {
             val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-            val url = URL("http://$cleanIp:$port/coffees/$sizeName/$coffeeName/ingredients")
+            val url = URL("http://$cleanIp:$port/coffees/$coffeeName/steps")
             val connection = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 connectTimeout = 5000
@@ -187,20 +191,26 @@ suspend fun getCoffeeIngredients(ip: String, port: String, coffeeName: String, s
             val responseCode = connection.responseCode
             if (responseCode != HttpURLConnection.HTTP_OK) {
                 connection.disconnect()
-                return@withContext emptyMap<String, String>()
+                return@withContext emptyMap<Int, Step>()
             }
 
             val response = connection.inputStream.bufferedReader().use { it.readText() }
             connection.disconnect()
 
             val jsonObj = JSONObject(response)
-            val map = mutableMapOf<String, String>()
+            val stepsMap = mutableMapOf<Int, Step>()
+
             jsonObj.keys().forEach { key ->
-                map[key] = jsonObj.getString(key)
+                val stepObj = jsonObj.getJSONObject(key)
+                stepsMap[key.toInt()] = Step(
+                    title = stepObj.optString("title", ""),
+                    description = stepObj.optString("description", "")
+                )
             }
-            return@withContext map
+
+            return@withContext stepsMap.toSortedMap()
         } catch (e: Exception) {
             e.printStackTrace()
-            return@withContext emptyMap<String, String>()
+            return@withContext emptyMap<Int, Step>()
         }
     }

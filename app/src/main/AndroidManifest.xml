@@ -44,6 +44,8 @@
             android:exported="true"
             android:label="Ingredients"
             android:theme="@style/Theme.FindCoffee" />
+
+        <activity android:name=".CoffeeStepsActivity" />
     </application>
 
 
