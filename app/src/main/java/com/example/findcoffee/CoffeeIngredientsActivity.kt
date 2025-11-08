@@ -66,7 +66,7 @@ fun CoffeeIngredientsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Ingredients", fontSize = 24.sp, fontWeight = FontWeight.Bold) },
+                title = { Text("Ingredients\n${coffeeName.replace("_"," ").replaceFirstChar { it.uppercase() }}", fontSize = 24.sp, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     Text(
                         "X",

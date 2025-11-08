@@ -69,7 +69,7 @@ fun CoffeeStepsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Preparation Steps", fontSize = 22.sp, fontWeight = FontWeight.Bold) },
+                title = { Text("Preparation Steps\n${coffeeName.replace("_"," ").replaceFirstChar { it.uppercase() }}", fontSize = 22.sp, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     Text(
                         "X",
