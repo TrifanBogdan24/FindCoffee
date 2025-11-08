@@ -66,6 +66,19 @@ fun CoffeeSizeScreen(ip: String, port: String, coffeeName: String, onClose: () -
                     )
                 }
             )
+        },
+        bottomBar = {
+            if (selectedSize != null) {
+                Button(
+                    onClick = { /* TODO: handle NEXT action */ },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(text = "NEXT ➡", fontSize = 18.sp)
+                }
+            }
         }
     ) { padding ->
         Column(
