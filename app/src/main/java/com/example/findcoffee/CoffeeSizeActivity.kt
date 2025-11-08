@@ -48,6 +48,7 @@ class CoffeeSizeActivity : ComponentActivity() {
 fun CoffeeSizeScreen(ip: String, port: String, coffeeName: String, onClose: () -> Unit) {
     var sizes by remember { mutableStateOf<List<String>>(emptyList()) }
     var selectedSize by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     // Fetch sizes when screen loads
     LaunchedEffect(Unit) {
@@ -71,14 +72,23 @@ fun CoffeeSizeScreen(ip: String, port: String, coffeeName: String, onClose: () -
         },
         bottomBar = {
             if (selectedSize != null) {
+                val context = LocalContext.current
                 Button(
-                    onClick = { /* TODO: handle NEXT action */ },
+                    onClick = {
+                        val intent = Intent(context, CoffeeIngredientsActivity::class.java).apply {
+                            putExtra("IP", ip)
+                            putExtra("PORT", port)
+                            putExtra("COFFEE_NAME", coffeeName)
+                            putExtra("SIZE_NAME", selectedSize ?: "")
+                        }
+                        context.startActivity(intent)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text(text = "NEXT ➡", fontSize = 18.sp)
+                    Text(text = "NEXT ➡\uFE0F", fontSize = 18.sp)
                 }
             }
         }
@@ -116,7 +126,7 @@ fun SizeCard(
 ) {
     var finalVolume by remember { mutableStateOf<String?>(null) }
 
-    // când componenta se lansează, cere volumul de pe server
+    // cand componenta se lanseaza, cere volumul de pe server
     LaunchedEffect(sizeName) {
         finalVolume = getFinalVolume(ip, port, coffeeName, sizeName)
     }

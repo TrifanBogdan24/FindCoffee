@@ -38,6 +38,12 @@
             android:exported="true"
             android:label="Select Coffee Size"
             android:theme="@style/Theme.FindCoffee" />
+
+        <activity
+            android:name=".CoffeeIngredientsActivity"
+            android:exported="true"
+            android:label="Ingredients"
+            android:theme="@style/Theme.FindCoffee" />
     </application>
 
 

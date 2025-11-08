@@ -35,7 +35,8 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun FindCoffeeTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    // Force Light Theme:
+    darkTheme: Boolean = false,
     // Dynamic color is available on Android 12+
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
