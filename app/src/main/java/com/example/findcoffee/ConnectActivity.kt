@@ -128,7 +128,7 @@ fun LoadingDialog(ip: String, port: String) {
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Trying to connect to http://$ip:$port/")
+                Text("Trying to connect to Coffee Server")
                 Spacer(modifier = Modifier.height(16.dp))
                 CircularProgressIndicator()
             }

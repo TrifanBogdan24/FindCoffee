@@ -65,7 +65,7 @@ fun CoffeeListScreen(coffees: List<String>, ip: String, port: String) {
 fun CoffeeCard(coffeeName: String, ip: String, port: String) {
     val context = LocalContext.current
     val imageName = coffeeName.lowercase().replace(" ", "_")
-    val imageUrl = "http://$ip:$port/images/coffee_list/$imageName"
+    val imageUrl = "http://$ip:$port/api/images/coffee_list/$imageName"
 
     Card(
         modifier = Modifier
@@ -119,7 +119,7 @@ fun CoffeeCard(coffeeName: String, ip: String, port: String) {
 suspend fun getCoffees(ip: String, port: String): List<String> = withContext(Dispatchers.IO) {
     try {
         val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-        val url = URL("http://$cleanIp:$port/coffees")
+        val url = URL("http://$cleanIp:$port/api/coffees")
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 5000
@@ -152,7 +152,7 @@ suspend fun getCoffees(ip: String, port: String): List<String> = withContext(Dis
 suspend fun connectToServer(ip: String, port: String): Boolean = withContext(Dispatchers.IO) {
     try {
         val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-        val url = URL("http://$cleanIp:$port/")
+        val url = URL("http://$cleanIp:$port/api")
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 5000

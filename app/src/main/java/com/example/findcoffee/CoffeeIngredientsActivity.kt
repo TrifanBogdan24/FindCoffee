@@ -33,6 +33,8 @@ class CoffeeIngredientsActivity : ComponentActivity() {
 
         setContent {
             FindCoffeeTheme {
+                ConnectionMonitor() // monitorizare globala
+                
                 CoffeeIngredientsScreen(
                     ip = ip,
                     port = port,
@@ -175,7 +177,7 @@ suspend fun getCoffeeIngredients(ip: String, port: String, coffeeName: String, s
     withContext(Dispatchers.IO) {
         try {
             val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-            val url = URL("http://$cleanIp:$port/coffees/$sizeName/$coffeeName/ingredients")
+            val url = URL("http://$cleanIp:$port/api/coffees/$sizeName/$coffeeName/ingredients")
             val connection = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 connectTimeout = 5000

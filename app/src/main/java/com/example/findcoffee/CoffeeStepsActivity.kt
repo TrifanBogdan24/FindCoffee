@@ -179,7 +179,7 @@ suspend fun getCoffeeSteps(ip: String, port: String, coffeeName: String): Map<In
     withContext(Dispatchers.IO) {
         try {
             val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-            val url = URL("http://$cleanIp:$port/coffees/$coffeeName/steps")
+            val url = URL("http://$cleanIp:$port/api/coffees/$coffeeName/steps")
             val connection = (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = "GET"
                 connectTimeout = 5000
