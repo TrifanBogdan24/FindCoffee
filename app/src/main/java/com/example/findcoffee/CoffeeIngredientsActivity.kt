@@ -21,6 +21,9 @@ import java.net.HttpURLConnection
 import java.net.URL
 import com.example.findcoffee.ui.theme.FindCoffeeTheme
 import androidx.compose.ui.platform.LocalContext
+import android.content.Context
+import com.example.findcoffee.data_base.CoffeeDatabase
+import com.example.findcoffee.data_base.Ingredient
 
 class CoffeeIngredientsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,13 +65,16 @@ fun CoffeeIngredientsScreen(
 
     // Fetch ingredients on load
     LaunchedEffect(Unit) {
-        ingredientsMap = getCoffeeIngredients(ip, port, coffeeName, sizeName)
+        ingredientsMap = getCoffeeIngredients(context, coffeeName, sizeName)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Ingredients\n${coffeeName.replace("_"," ").replaceFirstChar { it.uppercase() }}", fontSize = 24.sp, fontWeight = FontWeight.Bold) },
+                title = {
+                    Text("Ingredients\n${coffeeName.replace("_"," ").replaceFirstChar { it.uppercase() }}",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     Text(
                         "X",
@@ -173,36 +179,13 @@ fun CoffeeIngredientsScreen(
 
 
 
-suspend fun getCoffeeIngredients(ip: String, port: String, coffeeName: String, sizeName: String): Map<String, String> =
-    withContext(Dispatchers.IO) {
-        try {
-            val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-            val url = URL("http://$cleanIp:$port/api/coffees/$sizeName/$coffeeName/ingredients")
-            val connection = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 5000
-                readTimeout = 5000
-                doInput = true
-            }
-
-            connection.connect()
-            val responseCode = connection.responseCode
-            if (responseCode != HttpURLConnection.HTTP_OK) {
-                connection.disconnect()
-                return@withContext emptyMap<String, String>()
-            }
-
-            val response = connection.inputStream.bufferedReader().use { it.readText() }
-            connection.disconnect()
-
-            val jsonObj = JSONObject(response)
-            val map = mutableMapOf<String, String>()
-            jsonObj.keys().forEach { key ->
-                map[key] = jsonObj.getString(key)
-            }
-            return@withContext map
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return@withContext emptyMap<String, String>()
-        }
-    }
+suspend fun getCoffeeIngredients(
+    context: Context,
+    coffeeName: String,
+    sizeName: String
+): Map<String, String> = withContext(Dispatchers.IO) {
+    val db = CoffeeDatabase.getDatabase(context)
+    val coffee = db.coffeeDao().getByName(coffeeName.replace("_", " ").lowercase()) ?: return@withContext emptyMap<String, String>()
+    val ingredientsList = db.ingredientDao().getIngredientsForCoffeeAndSize(coffee.id, sizeName)
+    return@withContext ingredientsList.associate { it.ingredient to (it.quantity ?: "") }
+}

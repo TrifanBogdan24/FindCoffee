@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,19 +12,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
-import coil.request.ImageRequest
+import com.example.findcoffee.data_base.CoffeeDatabase
+import com.example.findcoffee.ui.theme.FindCoffeeTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 
 class CoffeeSizeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,7 +32,12 @@ class CoffeeSizeActivity : ComponentActivity() {
         setContent {
             ConnectionMonitor() // monitorizare globala
 
-            CoffeeSizeScreen(ip = ip, port = port, coffeeName = coffeeName, onClose = { finish() })
+            CoffeeSizeScreen(
+                ip = ip,
+                port = port,
+                coffeeName = coffeeName,
+                onClose = { finish() }
+            )
         }
     }
 }
@@ -46,19 +45,25 @@ class CoffeeSizeActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoffeeSizeScreen(ip: String, port: String, coffeeName: String, onClose: () -> Unit) {
+    val context = LocalContext.current
     var sizes by remember { mutableStateOf<List<String>>(emptyList()) }
     var selectedSize by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
 
-    // Fetch sizes when screen loads
+    // Fetch sizes din DB
     LaunchedEffect(Unit) {
-        sizes = getCoffeeSizes(ip, port, coffeeName)
+        sizes = getCoffeeSizesFromDb(context, coffeeName)
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("${coffeeName.replace("_"," ").replaceFirstChar { it.uppercase() }} Sizes") },
+                title = {
+                    Text(
+                        "${coffeeName.replace("_", " ").replaceFirstChar { it.uppercase() }} Sizes",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     Text(
                         "X",
@@ -72,7 +77,6 @@ fun CoffeeSizeScreen(ip: String, port: String, coffeeName: String, onClose: () -
         },
         bottomBar = {
             if (selectedSize != null) {
-                val context = LocalContext.current
                 Button(
                     onClick = {
                         val intent = Intent(context, CoffeeIngredientsActivity::class.java).apply {
@@ -88,7 +92,7 @@ fun CoffeeSizeScreen(ip: String, port: String, coffeeName: String, onClose: () -
                         .padding(16.dp),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text(text = "NEXT ➡\uFE0F", fontSize = 18.sp)
+                    Text(text = "NEXT ➡️", fontSize = 18.sp)
                 }
             }
         }
@@ -103,14 +107,12 @@ fun CoffeeSizeScreen(ip: String, port: String, coffeeName: String, onClose: () -
             sizes.forEach { size ->
                 SizeCard(
                     sizeName = size,
-                    coffeeName = coffeeName,
-                    ip = ip,
-                    port = port,
                     isSelected = selectedSize == size,
-                    onSelect = { selectedSize = size }
+                    onSelect = { selectedSize = size },
+                    context = context,
+                    coffeeName = coffeeName
                 )
             }
-
         }
     }
 }
@@ -118,17 +120,16 @@ fun CoffeeSizeScreen(ip: String, port: String, coffeeName: String, onClose: () -
 @Composable
 fun SizeCard(
     sizeName: String,
-    coffeeName: String,
-    ip: String,
-    port: String,
     isSelected: Boolean,
-    onSelect: () -> Unit
+    onSelect: () -> Unit,
+    context: android.content.Context,
+    coffeeName: String
 ) {
     var finalVolume by remember { mutableStateOf<String?>(null) }
 
-    // cand componenta se lanseaza, cere volumul de pe server
+    // Preia volumul final din DB
     LaunchedEffect(sizeName) {
-        finalVolume = getFinalVolume(ip, port, coffeeName, sizeName)
+        finalVolume = getFinalVolumeFromDb(context, coffeeName, sizeName)
     }
 
     Card(
@@ -172,72 +173,39 @@ fun SizeCard(
     }
 }
 
+suspend fun getCoffeeSizesFromDb(context: android.content.Context, coffeeName: String): List<String> =
+    withContext(Dispatchers.IO) {
+        try {
+            val db = CoffeeDatabase.getDatabase(context)
+            val coffeeDao = db.coffeeDao()
+            val sizeDao = db.coffeeSizeDao()
 
-suspend fun getFinalVolume(
-    ip: String,
-    port: String,
+            val coffee = coffeeDao.getByName(coffeeName.lowercase())
+            if (coffee == null) return@withContext emptyList<String>()
+
+            val sizes = sizeDao.getSizesForCoffee(coffee.id)
+            return@withContext sizes.map { it.size }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+suspend fun getFinalVolumeFromDb(
+    context: android.content.Context,
     coffeeName: String,
     sizeName: String
 ): String? = withContext(Dispatchers.IO) {
     try {
-        val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-        val url = URL("http://$cleanIp:$port/api/coffees/$coffeeName/$sizeName/final_volume")
-        val connection = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 5000
-            readTimeout = 5000
-            doInput = true
-        }
+        val db = CoffeeDatabase.getDatabase(context)
+        val coffeeDao = db.coffeeDao()
+        val sizeDao = db.coffeeSizeDao()
 
-        connection.connect()
-        val responseCode = connection.responseCode
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            connection.disconnect()
-            return@withContext null as String?
-        }
-
-        val response = connection.inputStream.bufferedReader().use { it.readText() }
-        connection.disconnect()
-
-        val jsonObj = org.json.JSONObject(response)
-        jsonObj.optString("final_volume", null)
+        val coffee = coffeeDao.getByName(coffeeName.lowercase()) ?: return@withContext null
+        val size = sizeDao.getSizeForCoffeeAndName(coffee.id, sizeName.lowercase())
+        return@withContext size?.finalVolume
     } catch (e: Exception) {
         e.printStackTrace()
         null
-    }
-}
-
-
-
-suspend fun getCoffeeSizes(ip: String, port: String, coffeeName: String): List<String> = withContext(Dispatchers.IO) {
-    try {
-        val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-        val url = URL("http://$cleanIp:$port/api/coffees/$coffeeName/sizes")
-        val connection = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 5000
-            readTimeout = 5000
-            doInput = true
-        }
-
-        connection.connect()
-        val responseCode = connection.responseCode
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            connection.disconnect()
-            return@withContext emptyList<String>()
-        }
-
-        val response = connection.inputStream.bufferedReader().use { it.readText() }
-        connection.disconnect()
-
-        val jsonArray = JSONArray(response)
-        val sizeList = mutableListOf<String>()
-        for (i in 0 until jsonArray.length()) {
-            sizeList.add(jsonArray.getString(i))
-        }
-        return@withContext sizeList
-    } catch (e: Exception) {
-        e.printStackTrace()
-        return@withContext emptyList<String>()
     }
 }

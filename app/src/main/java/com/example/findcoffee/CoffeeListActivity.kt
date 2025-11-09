@@ -1,10 +1,11 @@
 package com.example.findcoffee
 
-import androidx.compose.foundation.clickable
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,11 +20,9 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.example.findcoffee.ui.theme.FindCoffeeTheme
-import kotlinx.coroutines.*
-import org.json.JSONArray
-import java.net.HttpURLConnection
-import java.net.URL
-import android.content.Intent
+import com.example.findcoffee.data_base.CoffeeDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class CoffeeListActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,9 +34,11 @@ class CoffeeListActivity : ComponentActivity() {
         setContent {
             FindCoffeeTheme {
                 var coffees by remember { mutableStateOf<List<String>>(emptyList()) }
+                val context = LocalContext.current
 
+                // Fetch coffees from database
                 LaunchedEffect(Unit) {
-                    coffees = getCoffees(ip, port)
+                    coffees = getCoffeesFromDb(context)
                 }
 
                 ConnectionMonitor() // monitorizare globala
@@ -116,56 +117,8 @@ fun CoffeeCard(coffeeName: String, ip: String, port: String) {
     }
 }
 
-suspend fun getCoffees(ip: String, port: String): List<String> = withContext(Dispatchers.IO) {
-    try {
-        val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-        val url = URL("http://$cleanIp:$port/api/coffees")
-        val connection = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 5000
-            readTimeout = 5000
-            doInput = true
-        }
-
-        connection.connect()
-        val responseCode = connection.responseCode
-        if (responseCode != HttpURLConnection.HTTP_OK) {
-            connection.disconnect()
-            return@withContext emptyList<String>()
-        }
-
-        val response = connection.inputStream.bufferedReader().use { it.readText() }
-        connection.disconnect()
-
-        val jsonArray = JSONArray(response)
-        val coffeeList = mutableListOf<String>()
-        for (i in 0 until jsonArray.length()) {
-            coffeeList.add(jsonArray.getString(i))
-        }
-        return@withContext coffeeList
-    } catch (e: Exception) {
-        e.printStackTrace()
-        return@withContext emptyList<String>()
-    }
-}
-
-suspend fun connectToServer(ip: String, port: String): Boolean = withContext(Dispatchers.IO) {
-    try {
-        val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-        val url = URL("http://$cleanIp:$port/api")
-        val connection = (url.openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 5000
-            readTimeout = 5000
-            doInput = true
-        }
-
-        connection.connect()
-        val responseCode = connection.responseCode
-        connection.disconnect()
-        return@withContext responseCode == HttpURLConnection.HTTP_OK
-    } catch (e: Exception) {
-        e.printStackTrace()
-        return@withContext false
-    }
+// Fetch coffee names from Room database
+suspend fun getCoffeesFromDb(context: android.content.Context): List<String> = withContext(Dispatchers.IO) {
+    val db = CoffeeDatabase.getDatabase(context)
+    db.coffeeDao().getAllNames()
 }

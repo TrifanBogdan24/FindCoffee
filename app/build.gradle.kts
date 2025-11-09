@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    kotlin("kapt")   // Pentru baza de date
 }
 
 android {
@@ -40,6 +41,14 @@ android {
 }
 
 dependencies {
+    // Pentru baza de date:
+    val room_version = "2.6.1"
+    implementation("androidx.room:room-runtime:$room_version")
+    kapt("androidx.room:room-compiler:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+
+
+    // Pentru randarea imaginilor:
 	implementation("io.coil-kt:coil-compose:2.6.0")
 
     implementation(libs.androidx.core.ktx)

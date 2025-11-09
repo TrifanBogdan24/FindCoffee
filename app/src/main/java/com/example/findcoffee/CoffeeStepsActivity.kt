@@ -15,12 +15,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.findcoffee.data_base.CoffeeDatabase
+import com.example.findcoffee.data_base.Step
 import com.example.findcoffee.ui.theme.FindCoffeeTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 
 class CoffeeStepsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,7 +28,7 @@ class CoffeeStepsActivity : ComponentActivity() {
         val ip = intent.getStringExtra("IP") ?: ""
         val port = intent.getStringExtra("PORT") ?: ""
         val coffeeName = intent.getStringExtra("COFFEE_NAME") ?: ""
-        val sizeName = intent.getStringExtra("SIZE_NAME") ?: ""
+        val sizeName = intent.getStringExtra("SIZE_NAME") ?: "" // rămâne pentru back-navigation
 
         setContent {
             FindCoffeeTheme {
@@ -55,21 +54,30 @@ fun CoffeeStepsScreen(
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
-    var steps by remember { mutableStateOf<Map<Int, Step>>(emptyMap()) }
+    var steps by remember { mutableStateOf<List<Step>>(emptyList()) }
     var currentStep by remember { mutableStateOf(1) }
 
-    // Fetch steps on load
+    // Fetch steps from DB on load
     LaunchedEffect(Unit) {
-        steps = getCoffeeSteps(ip, port, coffeeName)
+        steps = getCoffeeStepsFromDb(context, coffeeName)
     }
 
     val totalSteps = steps.size
-    val step = steps[currentStep]
+    val step = steps.getOrNull(currentStep - 1)
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Preparation Steps\n${coffeeName.replace("_"," ").replaceFirstChar { it.uppercase() }}", fontSize = 22.sp, fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        "Preparation Steps\n${
+                            coffeeName.replace("_", " ")
+                                .replaceFirstChar { it.uppercase() }
+                        }",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     Text(
                         "X",
@@ -105,7 +113,7 @@ fun CoffeeStepsScreen(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("⬅\uFE0F PREV", fontSize = 18.sp)
+                    Text("⬅️ PREV", fontSize = 18.sp)
                 }
 
                 Button(
@@ -113,14 +121,13 @@ fun CoffeeStepsScreen(
                         if (currentStep < totalSteps) {
                             currentStep++
                         } else {
-                            // TODO: implement
                             onClose()
                         }
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("NEXT ➡\uFE0F", fontSize = 18.sp)
+                    Text("NEXT ➡️", fontSize = 18.sp)
                 }
             }
         }
@@ -134,7 +141,6 @@ fun CoffeeStepsScreen(
                 verticalArrangement = Arrangement.spacedBy(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Progress bar
                 LinearProgressIndicator(
                     progress = if (totalSteps > 0) currentStep / totalSteps.toFloat() else 0f,
                     modifier = Modifier
@@ -143,7 +149,6 @@ fun CoffeeStepsScreen(
                         .padding(horizontal = 16.dp)
                 )
 
-                // Step title
                 Text(
                     text = "Step $currentStep of $totalSteps",
                     fontSize = 20.sp,
@@ -151,13 +156,13 @@ fun CoffeeStepsScreen(
                 )
 
                 Text(
-                    text = step.title,
+                    text = step.title ?: "",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = step.description,
+                    text = step.description ?: "",
                     fontSize = 18.sp,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
@@ -173,44 +178,21 @@ fun CoffeeStepsScreen(
     }
 }
 
-data class Step(val title: String, val description: String)
-
-suspend fun getCoffeeSteps(ip: String, port: String, coffeeName: String): Map<Int, Step> =
+// Fetch steps from local Room database
+suspend fun getCoffeeStepsFromDb(context: android.content.Context, coffeeName: String): List<Step> =
     withContext(Dispatchers.IO) {
         try {
-            val cleanIp = ip.trim().removePrefix("http://").removePrefix("https://")
-            val url = URL("http://$cleanIp:$port/api/coffees/$coffeeName/steps")
-            val connection = (url.openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                connectTimeout = 5000
-                readTimeout = 5000
-                doInput = true
-            }
+            val db = CoffeeDatabase.getDatabase(context)
+            val coffeeDao = db.coffeeDao()
+            val stepDao = db.stepDao()
 
-            connection.connect()
-            val responseCode = connection.responseCode
-            if (responseCode != HttpURLConnection.HTTP_OK) {
-                connection.disconnect()
-                return@withContext emptyMap<Int, Step>()
-            }
+            val coffee = coffeeDao.getByName(coffeeName.lowercase())
+            if (coffee == null) return@withContext emptyList<Step>()
 
-            val response = connection.inputStream.bufferedReader().use { it.readText() }
-            connection.disconnect()
-
-            val jsonObj = JSONObject(response)
-            val stepsMap = mutableMapOf<Int, Step>()
-
-            jsonObj.keys().forEach { key ->
-                val stepObj = jsonObj.getJSONObject(key)
-                stepsMap[key.toInt()] = Step(
-                    title = stepObj.optString("title", ""),
-                    description = stepObj.optString("description", "")
-                )
-            }
-
-            return@withContext stepsMap.toSortedMap()
+            val steps = stepDao.getStepsForCoffee(coffee.id)
+            return@withContext steps.sortedBy { it.stepNumber }
         } catch (e: Exception) {
             e.printStackTrace()
-            return@withContext emptyMap<Int, Step>()
+            emptyList<Step>()
         }
     }
