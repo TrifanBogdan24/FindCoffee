@@ -47,6 +47,7 @@ dependencies {
     kapt("androidx.room:room-compiler:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
 
+    implementation("com.airbnb.android:lottie-compose:6.1.0")
 
     // Pentru randarea imaginilor:
 	implementation("io.coil-kt:coil-compose:2.6.0")
