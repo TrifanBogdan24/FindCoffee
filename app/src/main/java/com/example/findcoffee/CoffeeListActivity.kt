@@ -131,7 +131,6 @@ fun CoffeeListScreen(
 }
 
 
-
 @Composable
 fun CoffeeCard(coffeeName: String, ip: String, port: String, highlight: String = "") {
     val context = LocalContext.current
@@ -146,7 +145,7 @@ fun CoffeeCard(coffeeName: String, ip: String, port: String, highlight: String =
                 val intent = Intent(context, CoffeeSizeActivity::class.java).apply {
                     putExtra("IP", ip)
                     putExtra("PORT", port)
-                    putExtra("COFFEE_NAME", coffeeName.lowercase().replace(" ", "_"))
+                    putExtra("COFFEE_NAME", coffeeName)
                 }
                 context.startActivity(intent)
             },
@@ -188,6 +187,7 @@ fun CoffeeCard(coffeeName: String, ip: String, port: String, highlight: String =
         }
     }
 }
+
 
 @Composable
 fun buildHighlightedText(text: String, query: String): androidx.compose.ui.text.AnnotatedString {
