@@ -78,7 +78,9 @@ fun CoffeeListScreen(
     port: String
 ) {
     val context = LocalContext.current
+
     Column(modifier = Modifier.fillMaxSize()) {
+        // Search field
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { onSearchChange(it) },
@@ -88,6 +90,7 @@ fun CoffeeListScreen(
                 .padding(16.dp)
         )
 
+        // Filter coffees
         val filteredCoffees = if (searchQuery.isBlank()) {
             coffees
         } else {
@@ -95,16 +98,15 @@ fun CoffeeListScreen(
         }
 
         if (filteredCoffees.isEmpty()) {
-            // Animatie Lottie / GIF când nu există rezultate
+            // Lottie animation when no results
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = 50.dp),
                 contentAlignment = Alignment.TopCenter
             ) {
-                // Folosim Lottie Animation (presupunem că ai dependența lottie-compose)
                 val composition by rememberLottieComposition(
-                    LottieCompositionSpec.Url("https://assets2.lottiefiles.com/packages/lf20_6xvgrG.json")
+                    LottieCompositionSpec.RawRes(R.raw.no_coffee)
                 )
                 LottieAnimation(
                     composition,
@@ -113,34 +115,21 @@ fun CoffeeListScreen(
                 )
             }
         } else {
-            Box(modifier = Modifier.fillMaxSize()) {
-                if (filteredCoffees.isEmpty()) {
-                    // Lottie animation
-                    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.no_coffee))
-                    LottieAnimation(
-                        composition,
-                        iterations = LottieConstants.IterateForever,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .align(Alignment.Center)
-                    )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(filteredCoffees) { coffee ->
-                            CoffeeCard(coffeeName = coffee, ip = ip, port = port, highlight = searchQuery)
-                        }
-                    }
+            // Show coffee list
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(filteredCoffees) { coffee ->
+                    CoffeeCard(coffeeName = coffee, ip = ip, port = port, highlight = searchQuery)
                 }
             }
-
         }
     }
 }
+
 
 
 @Composable
