@@ -30,7 +30,9 @@ class CoffeeSizeActivity : ComponentActivity() {
         val coffeeName = intent.getStringExtra("COFFEE_NAME") ?: ""
 
         setContent {
-            ConnectionMonitor() // monitorizare globala
+            // monitorizare globala:
+            CheckInternetConnection()
+            Check_HTTP_ServerConnection(ip = ip, port = port)
 
             CoffeeSizeScreen(
                 ip = ip,

@@ -1,4 +1,3 @@
-// ConnectionMonitor.kt
 package com.example.findcoffee
 
 import androidx.compose.foundation.layout.*
@@ -13,13 +12,13 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 @Composable
-fun ConnectionMonitor() {
+fun CheckInternetConnection() {
     var isConnected by remember { mutableStateOf(true) }
 
     // Coroutine pentru a verifica conexiunea periodic (la fiecare secunda)
     LaunchedEffect(Unit) {
         while (true) {
-            isConnected = checkInternetConnection()
+            isConnected = verifyInternetConnection()
             kotlinx.coroutines.delay(1_000)
         }
     }
@@ -60,7 +59,7 @@ fun NoInternetDialog() {
     )
 }
 
-suspend fun checkInternetConnection(): Boolean = withContext(Dispatchers.IO) {
+suspend fun verifyInternetConnection(): Boolean = withContext(Dispatchers.IO) {
     return@withContext try {
         val url = URL("https://www.google.com")
         val connection = url.openConnection() as HttpURLConnection

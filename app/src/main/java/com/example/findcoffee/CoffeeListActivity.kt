@@ -1,4 +1,3 @@
-// CoffeeListActivity.kt
 package com.example.findcoffee
 
 import android.content.Intent
@@ -56,7 +55,11 @@ class CoffeeListActivity : ComponentActivity() {
                     allCoffees = getCoffeesFromDb(context)
                 }
 
-                ConnectionMonitor() // monitorizare globala
+                // monitorizare globala:
+                CheckInternetConnection()
+                Check_HTTP_ServerConnection(ip = ip, port = port)
+
+
                 CoffeeListScreen(
                     coffees = allCoffees,
                     searchQuery = searchQuery,

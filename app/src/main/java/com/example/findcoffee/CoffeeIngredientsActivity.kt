@@ -36,8 +36,10 @@ class CoffeeIngredientsActivity : ComponentActivity() {
 
         setContent {
             FindCoffeeTheme {
-                ConnectionMonitor() // monitorizare globala
-                
+                // monitorizare globala:
+                CheckInternetConnection()
+                Check_HTTP_ServerConnection(ip = ip, port = port)
+
                 CoffeeIngredientsScreen(
                     ip = ip,
                     port = port,

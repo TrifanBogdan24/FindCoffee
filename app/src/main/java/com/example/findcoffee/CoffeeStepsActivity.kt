@@ -32,6 +32,10 @@ class CoffeeStepsActivity : ComponentActivity() {
 
         setContent {
             FindCoffeeTheme {
+                // monitorizare globala:
+                CheckInternetConnection()
+                Check_HTTP_ServerConnection(ip = ip, port = port)
+
                 CoffeeStepsScreen(
                     ip = ip,
                     port = port,
