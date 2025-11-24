@@ -1,4 +1,4 @@
-package com.example.findcoffee
+package com.example.findcoffee.coroutines
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*

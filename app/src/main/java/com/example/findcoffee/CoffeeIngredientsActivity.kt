@@ -16,14 +16,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import com.example.findcoffee.ui.theme.FindCoffeeTheme
 import androidx.compose.ui.platform.LocalContext
 import android.content.Context
+import com.example.findcoffee.coroutines.CheckInternetConnection
+import com.example.findcoffee.coroutines.Check_HTTP_ServerConnection
 import com.example.findcoffee.data_base.CoffeeDatabase
-import com.example.findcoffee.data_base.Ingredient
 
 class CoffeeIngredientsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

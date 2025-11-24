@@ -16,8 +16,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.findcoffee.coroutines.CheckInternetConnection
+import com.example.findcoffee.coroutines.Check_HTTP_ServerConnection
 import com.example.findcoffee.data_base.CoffeeDatabase
-import com.example.findcoffee.ui.theme.FindCoffeeTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

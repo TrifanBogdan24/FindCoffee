@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.findcoffee.ui.theme.FindCoffeeTheme
 import androidx.compose.ui.platform.LocalContext
+import com.example.findcoffee.coroutines.CheckInternetConnection
 import kotlinx.coroutines.*
 import com.example.findcoffee.data_base.Coffee
 import com.example.findcoffee.data_base.CoffeeSize

@@ -1,4 +1,4 @@
-package com.example.findcoffee
+package com.example.findcoffee.coroutines
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -7,6 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
@@ -19,7 +20,7 @@ fun CheckInternetConnection() {
     LaunchedEffect(Unit) {
         while (true) {
             isConnected = verifyInternetConnection()
-            kotlinx.coroutines.delay(1_000)
+            delay(1_000)
         }
     }
 
