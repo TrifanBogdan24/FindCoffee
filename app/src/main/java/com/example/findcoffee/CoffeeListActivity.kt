@@ -59,14 +59,31 @@ class CoffeeListActivity : ComponentActivity() {
                 CheckInternetConnection()
                 Check_HTTP_ServerConnection(ip = ip, port = port)
 
-
-                CoffeeListScreen(
-                    coffees = allCoffees,
-                    searchQuery = searchQuery,
-                    onSearchChange = { searchQuery = it },
-                    ip = ip,
-                    port = port
-                )
+                // Folosim Scaffold pentru a pozitiona FloatingActionButton corect
+                Scaffold(
+                    floatingActionButton = {
+                        FloatingActionButton(
+                            onClick = {
+                                val intent = Intent(context, CoffeeMapsActivity::class.java)
+                                context.startActivity(intent)
+                            },
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ) {
+                            Text("📍", fontSize = 24.sp)
+                        }
+                    }
+                ) { paddingValues ->
+                    Box(modifier = Modifier.padding(paddingValues)) {
+                        CoffeeListScreen(
+                            coffees = allCoffees,
+                            searchQuery = searchQuery,
+                            onSearchChange = { searchQuery = it },
+                            ip = ip,
+                            port = port
+                        )
+                    }
+                }
             }
         }
     }
@@ -90,7 +107,8 @@ fun CoffeeListScreen(
             label = { Text("Search Coffee") },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(16.dp),
+            singleLine = true
         )
 
         // Filter coffees
@@ -128,6 +146,8 @@ fun CoffeeListScreen(
                 items(filteredCoffees) { coffee ->
                     CoffeeCard(coffeeName = coffee, ip = ip, port = port, highlight = searchQuery)
                 }
+                // Adaugam un spacer la final pentru ca FAB-ul sa nu acopere ultima cafea
+                item { Spacer(modifier = Modifier.height(80.dp)) }
             }
         }
     }

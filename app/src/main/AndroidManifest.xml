@@ -2,9 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Allow Internet access    -->
     <uses-permission android:name="android.permission.INTERNET" />
-
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:allowBackup="true"
@@ -17,7 +17,10 @@
         android:theme="@style/Theme.FindCoffee"
         android:usesCleartextTraffic="true">
 
-        <!-- MainActivity: este doar un launcher -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -29,24 +32,27 @@
             </intent-filter>
         </activity>
 
-        <!-- Activitatile reale cu UI -->
-        <activity android:name=".ConnectActivity" />
-        <activity android:name=".CoffeeListActivity" />
+        <activity
+            android:name=".CoffeeMapsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:label="Nearby coffee shops" />
+
+        <activity android:name=".ConnectActivity" android:exported="false" />
+        <activity android:name=".CoffeeListActivity" android:exported="false" />
 
         <activity
             android:name=".CoffeeSizeActivity"
-            android:exported="true"
-            android:label="Select Coffee Size"
-            android:theme="@style/Theme.FindCoffee" />
+            android:exported="false"
+            android:label="Select Coffee Size" />
 
         <activity
             android:name=".CoffeeIngredientsActivity"
-            android:exported="true"
-            android:label="Ingredients"
-            android:theme="@style/Theme.FindCoffee" />
+            android:exported="false"
+            android:label="Ingredients" />
 
-        <activity android:name=".CoffeeStepsActivity" />
+        <activity android:name=".CoffeeStepsActivity" android:exported="false" />
+
     </application>
-
 
 </manifest>
