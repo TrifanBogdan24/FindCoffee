@@ -2,6 +2,7 @@ package com.example.findcoffee
 
 import android.content.Intent
 import android.os.Bundle
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -23,19 +24,16 @@ import com.example.findcoffee.data_base.Ingredient
 import com.example.findcoffee.data_base.Step
 import com.example.findcoffee.data_base.CoffeeDatabase
 import com.example.findcoffee.data_base.fetchCoffeeRecipes
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import java.net.HttpURLConnection
 import java.net.URL
-
 
 class ConnectActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             FindCoffeeTheme {
-                CheckInternetConnection() // monitorizare globala
-
+                CheckInternetConnection()
                 ConnectionScreen(onSuccess = { ip, port ->
                     val intent = Intent(this, CoffeeListActivity::class.java)
                     intent.putExtra("IP", ip)
@@ -47,23 +45,106 @@ class ConnectActivity : ComponentActivity() {
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConnectionScreen(onSuccess: (ip: String, port: String) -> Unit) {
-    var ipAddress by remember { mutableStateOf("") }
-    var port by remember { mutableStateOf("") }
+    // Specificam explicit tipul String pentru a evita eroarea Nothing?
+    var ipAddress by remember { mutableStateOf<String>("") }
+    var port by remember { mutableStateOf<String>("") }
     var isLoading by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
-    var snackbarMessage by remember { mutableStateOf<String?>(null) }
 
-    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val scanner = remember { GmsBarcodeScanning.getClient(context) }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) { padding ->
+
+    // Functie extrasa pentru a putea fi apelata si de scanner si de buton manual
+    fun performConnection(targetIp: String, targetPort: String) {
+        if (targetIp.isBlank()) return
+
+        scope.launch {
+            showDialog = true
+            isLoading = true
+
+            // Masuram timpul de start pentru a calcula cat mai trebuie sa asteptam la final
+            val startTime = System.currentTimeMillis()
+
+            // Executam incercarea de conectare
+            val result = connectToServer(targetIp, targetPort)
+
+            if (result) {
+                val db = CoffeeDatabase.getDatabase(context)
+                withContext(Dispatchers.IO) {
+                    db.coffeeDao().deleteAll()
+                    db.coffeeSizeDao().deleteAll()
+                    db.ingredientDao().deleteAll()
+                    db.stepDao().deleteAll()
+
+                    val recipes = fetchCoffeeRecipes(targetIp, targetPort)
+                    recipes.forEach { coffeeJson ->
+                        val coffeeId = db.coffeeDao().insert(Coffee(
+                            category = coffeeJson.getString("category"),
+                            name = coffeeJson.getString("name"),
+                            notes = coffeeJson.optString("notes", null)
+                        ))
+
+                        val fvObj = coffeeJson.getJSONObject("final_volume")
+                        fvObj.keys().forEach { sizeKey ->
+                            db.coffeeSizeDao().insert(CoffeeSize(
+                                coffeeId = coffeeId.toInt(),
+                                size = sizeKey,
+                                finalVolume = fvObj.getString(sizeKey)
+                            ))
+                        }
+
+                        val ingObj = coffeeJson.getJSONObject("ingredients")
+                        ingObj.keys().forEach { sizeKey ->
+                            val subIng = ingObj.getJSONObject(sizeKey)
+                            subIng.keys().forEach { ingName ->
+                                db.ingredientDao().insert(Ingredient(
+                                    coffeeId = coffeeId.toInt(),
+                                    size = sizeKey,
+                                    ingredient = ingName,
+                                    quantity = subIng.getString(ingName)
+                                ))
+                            }
+                        }
+
+                        val stepsObj = coffeeJson.getJSONObject("steps")
+                        stepsObj.keys().forEach { stepNum ->
+                            val stepJson = stepsObj.getJSONObject(stepNum)
+                            db.stepDao().insert(Step(
+                                coffeeId = coffeeId.toInt(),
+                                stepNumber = stepNum.toInt(),
+                                title = stepJson.optString("title", null),
+                                description = stepJson.optString("description", null)
+                            ))
+                        }
+                    }
+                }
+            }
+
+            // Calculam cat timp a trecut deja
+            val elapsedTime = System.currentTimeMillis() - startTime
+            val remainingTime = 3000L - elapsedTime
+
+            // Daca operatiunea a durat mai putin de 3 secunde, asteptam diferenta
+            if (remainingTime > 0) {
+                delay(remainingTime)
+            }
+
+            isLoading = false
+            showDialog = false
+
+            // Navigam doar daca rezultatul a fost de succes
+            if (result) {
+                onSuccess(targetIp, targetPort)
+            }
+        }
+    }
+
+    Scaffold { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -72,6 +153,43 @@ fun ConnectionScreen(onSuccess: (ip: String, port: String) -> Unit) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Text("Find Coffee Server", fontSize = 24.sp, modifier = Modifier.padding(bottom = 32.dp))
+
+            Button(
+                onClick = {
+                    scanner.startScan()
+                        .addOnSuccessListener { barcode ->
+                            val rawValue = barcode.rawValue ?: ""
+                            try {
+                                val uri = Uri.parse(rawValue)
+                                val host = uri.host ?: ""
+                                val portVal = uri.port.toString()
+                                if (host.isNotEmpty()) {
+                                    val finalIp = host
+                                    val finalPort = if (portVal == "-1") "5000" else portVal
+
+                                    // Actualizam UI-ul
+                                    ipAddress = finalIp
+                                    port = finalPort
+
+                                    // Declansam conexiunea automat dupa scanare
+                                    performConnection(finalIp, finalPort)
+                                }
+                            } catch (e: Exception) {
+                                // Format invalid
+                            }
+                        }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Text("Scan QR Code 📷")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("OR MANUALLY", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
+            Spacer(modifier = Modifier.height(16.dp))
+
             OutlinedTextField(
                 value = ipAddress,
                 onValueChange = { ipAddress = it },
@@ -95,87 +213,10 @@ fun ConnectionScreen(onSuccess: (ip: String, port: String) -> Unit) {
 
             Button(
                 onClick = {
-                    val ipTrimmed = ipAddress.trim()
-                    val portTrimmed = port.trim()
-
-                    scope.launch {
-                        showDialog = true
-                        delay(2000)
-
-                        isLoading = true
-                        val result = connectToServer(ipTrimmed, portTrimmed)
-                        isLoading = false
-                        showDialog = false
-
-                        if (result) {
-                            // 1. Sterge toate datele vechi
-                            val db = CoffeeDatabase.getDatabase(context)
-                            db.coffeeDao().deleteAll()
-                            db.coffeeSizeDao().deleteAll()
-                            db.ingredientDao().deleteAll()
-                            db.stepDao().deleteAll()
-
-                            // 2. Fetch toate datele din /coffee_recipes
-                            val recipes = fetchCoffeeRecipes(ipTrimmed, portTrimmed)
-
-                            // 3. Populeaza baza de date
-                            recipes.forEach { coffeeJson ->
-                                val coffee = Coffee(
-                                    category = coffeeJson.getString("category"),
-                                    name = coffeeJson.getString("name"),
-                                    notes = coffeeJson.optString("notes", null)
-                                )
-                                val coffeeId = db.coffeeDao().insert(coffee)
-
-                                // Dimensiuni
-                                val sizes = coffeeJson.getJSONObject("final_volume").keys()
-                                while (sizes.hasNext()) {
-                                    val sizeName = sizes.next()
-                                    val finalVolume = coffeeJson.getJSONObject("final_volume").optString(sizeName)
-                                    db.coffeeSizeDao().insert(
-                                        CoffeeSize(coffeeId = coffeeId.toInt(), size = sizeName, finalVolume = finalVolume)
-                                    )
-                                }
-
-                                // Ingrediente
-                                val ingredientsObj = coffeeJson.getJSONObject("ingredients")
-                                ingredientsObj.keys().forEach { sizeKey ->
-                                    val ingForSize = ingredientsObj.getJSONObject(sizeKey)
-                                    ingForSize.keys().forEach { ingName ->
-                                        val qty = ingForSize.getString(ingName)
-                                        db.ingredientDao().insert(
-                                            Ingredient(coffeeId = coffeeId.toInt(), size = sizeKey, ingredient = ingName, quantity = qty)
-                                        )
-                                    }
-                                }
-
-                                // Steps
-                                val stepsObj = coffeeJson.getJSONObject("steps")
-                                stepsObj.keys().forEach { stepNum ->
-                                    val stepJson = stepsObj.getJSONObject(stepNum)
-                                    db.stepDao().insert(
-                                        Step(
-                                            coffeeId = coffeeId.toInt(),
-                                            stepNumber = stepNum.toInt(),
-                                            title = stepJson.optString("title", null),
-                                            description = stepJson.optString("description", null)
-                                        )
-                                    )
-                                }
-                            }
-
-                            // 4. Navigheaza la lista de cafele
-                            onSuccess(ipTrimmed, portTrimmed)
-                        } else {
-                            snackbarMessage = "Connection failed"
-                            snackbarHostState.showSnackbar(snackbarMessage!!)
-                        }
-                    }
+                    performConnection(ipAddress.trim(), port.trim())
                 },
-                enabled = !isLoading,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
+                enabled = !isLoading && ipAddress.isNotBlank(),
+                modifier = Modifier.fillMaxWidth().height(56.dp)
             ) {
                 Text("Connect", fontSize = 18.sp)
             }
@@ -206,7 +247,6 @@ fun LoadingDialog(ip: String, port: String) {
         }
     )
 }
-
 
 suspend fun connectToServer(ip: String, port: String): Boolean = withContext(Dispatchers.IO) {
     try {

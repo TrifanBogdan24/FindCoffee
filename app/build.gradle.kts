@@ -52,6 +52,9 @@ dependencies {
     // Pentru randarea imaginilor:
 	implementation("io.coil-kt:coil-compose:2.6.0")
 
+    // Pentru scanarea codurilor QR:
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
