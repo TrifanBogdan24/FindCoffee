@@ -7,13 +7,14 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.example.findcoffee.ui.theme.FindCoffeeTheme
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -29,14 +30,28 @@ class CoffeeMapsActivity : ComponentActivity() {
 
     private var googleMap: GoogleMap? = null
 
+    // Manager pentru cererea permisiunilor de locatie la runtime
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            // Daca utilizatorul a acceptat, reincarcam activitatea pentru a activa harta
+            recreate()
+        } else {
+            Toast.makeText(this, "Permisiunea de locatie este necesara pentru harti!", Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initializare SDK Places
+        // Initializare SDK Places folosind cheia din BuildConfig (injectata prin Secrets Plugin)
         if (!Places.isInitialized()) {
-            // Folosim getString pentru a prelua cheia din strings.xml
             Places.initialize(applicationContext, BuildConfig.MAPS_API_KEY)
         }
+
+        // Verificam permisiunile imediat la pornire
+        checkLocationPermission()
 
         setContent {
             FindCoffeeTheme {
@@ -45,8 +60,14 @@ class CoffeeMapsActivity : ComponentActivity() {
         }
     }
 
+    private fun checkLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+            requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
-    @SuppressLint("MissingPermission")
     @Composable
     fun MapScreen() {
         val context = LocalContext.current
@@ -54,7 +75,13 @@ class CoffeeMapsActivity : ComponentActivity() {
 
         Scaffold(
             topBar = {
-                TopAppBar(title = { Text("Cafenele în apropiere") })
+                TopAppBar(
+                    title = { Text("Cafenele in apropiere") },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.primary,
+                    )
+                )
             }
         ) { padding ->
             Column(modifier = Modifier.padding(padding)) {
@@ -65,27 +92,43 @@ class CoffeeMapsActivity : ComponentActivity() {
                             onCreate(null)
                             getMapAsync { map ->
                                 googleMap = map
-                                // Verificam permisiunile inainte de a activa locatia pe harta
-                                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                                    map.isMyLocationEnabled = true
-                                    getCurrentLocationAndSearch(fusedLocationClient)
-                                }
+                                // Configuram harta doar dupa ce este gata si avem permisiuni
+                                setupMapWithLocation(fusedLocationClient)
                             }
                         }
                     },
-                    update = { mapView -> mapView.onResume() }
+                    update = { mapView ->
+                        mapView.onResume()
+                    }
                 )
             }
         }
     }
 
     @SuppressLint("MissingPermission")
-    private fun getCurrentLocationAndSearch(fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient) {
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            location?.let {
-                val userLatLng = LatLng(it.latitude, it.longitude)
-                googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 14f))
-                searchNearbyCoffees(userLatLng)
+    private fun setupMapWithLocation(fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient) {
+        val map = googleMap ?: return
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED) {
+
+            // Activeaza punctul albastru (locatia utilizatorului) pe harta
+            map.isMyLocationEnabled = true
+            map.uiSettings.isMyLocationButtonEnabled = true
+
+            // Obtine locatia curenta si centreaza camera
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                if (location != null) {
+                    val userLatLng = LatLng(location.latitude, location.longitude)
+
+                    // Zoom 15f este ideal pentru a vedea cafenelele la nivel de strada
+                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 15f))
+
+                    // Cautam automat cafenele in jurul punctului gasit
+                    searchNearbyCoffees(userLatLng)
+                } else {
+                    Toast.makeText(this, "GPS activ? Nu am putut detecta locatia.", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -93,18 +136,22 @@ class CoffeeMapsActivity : ComponentActivity() {
     private fun searchNearbyCoffees(location: LatLng) {
         val placesClient = Places.createClient(this)
 
-        // Fields pe care le cerem de la Google
-        val placeFields = listOf(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG, Place.Field.ADDRESS)
+        // Definim ce date dorim sa primim de la Google despre fiecare loc
+        val placeFields = listOf(
+            Place.Field.ID,
+            Place.Field.NAME,
+            Place.Field.LAT_LNG,
+            Place.Field.ADDRESS
+        )
 
-        // Noua metoda de cautare pentru SDK v4.0+
-        val request = SearchByTextRequest.builder("coffee shop", placeFields)
-            .setMaxResultCount(10)
-            .setLocationBias(com.google.android.libraries.places.api.model.CircularBounds.newInstance(location, 5000.0))
+        // Cautare textuala automata
+        val request = SearchByTextRequest.builder("coffee shop barista coffee", placeFields)
+            .setMaxResultCount(15) // Afisam maxim 15 rezultate pentru claritate
+            .setLocationBias(com.google.android.libraries.places.api.model.CircularBounds.newInstance(location, 3000.0)) // Raza 3km
             .build()
 
         placesClient.searchByText(request)
             .addOnSuccessListener { response ->
-                // In noile versiuni folosim response.places
                 for (place in response.places) {
                     val latLng = place.latLng
                     if (latLng != null) {
@@ -118,7 +165,7 @@ class CoffeeMapsActivity : ComponentActivity() {
                 }
             }
             .addOnFailureListener { e ->
-                Toast.makeText(this, "Eroare: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Eroare Places: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
     }
 }
