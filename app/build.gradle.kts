@@ -5,6 +5,9 @@ plugins {
     kotlin("kapt")   // Pentru baza de date
     // Plugin pentru ascunderea cheilor API (citeste din local.properties)
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+
+    // Pentru Flutter:
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -63,6 +66,13 @@ dependencies {
     implementation("com.google.android.libraries.places:places:4.1.0")
     implementation("com.google.android.gms:play-services-maps:19.0.0")
     implementation("com.google.android.gms:play-services-location:21.1.0")
+
+    // Pentru Flutter:
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth-ktx") // Autentificare
+    implementation("com.google.firebase:firebase-firestore-ktx") // Bază de date
+
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
