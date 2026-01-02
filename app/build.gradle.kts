@@ -24,6 +24,12 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -73,6 +79,18 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx") // Autentificare
     implementation("com.google.firebase:firebase-firestore-ktx") // Bază de date
 
+
+    // Teste Unitare Locale (folderul 'test')
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.10.3")
+    testImplementation("androidx.test:core:1.5.0")
+
+    // Teste Instrumentate (folderul 'androidTest')
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+
+    // Test endpoint API HTTP:
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
