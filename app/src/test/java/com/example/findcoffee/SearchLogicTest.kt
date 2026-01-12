@@ -10,7 +10,7 @@ class SearchLogicTest {
         val text = "Cappuccino"
         val query = "cap"
 
-        // Verificam daca filtrarea de baza (case insensitive) functioneaza
+        // Verificare: filtrarea (case inensitive) functioneaza
         val isMatch = text.contains(query, ignoreCase = true)
         assertEquals(true, isMatch)
     }

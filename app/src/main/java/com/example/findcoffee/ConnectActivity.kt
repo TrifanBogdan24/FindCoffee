@@ -48,7 +48,6 @@ class ConnectActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConnectionScreen(onSuccess: (ip: String, port: String) -> Unit) {
-    // Specificam explicit tipul String pentru a evita eroarea Nothing?
     var ipAddress by remember { mutableStateOf<String>("") }
     var port by remember { mutableStateOf<String>("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -59,7 +58,7 @@ fun ConnectionScreen(onSuccess: (ip: String, port: String) -> Unit) {
     val scanner = remember { GmsBarcodeScanning.getClient(context) }
 
 
-    // Functie extrasa pentru a putea fi apelata si de scanner si de buton manual
+    // Helper function pentru scanner si buton manual
     fun performConnection(targetIp: String, targetPort: String) {
         if (targetIp.isBlank()) return
 
@@ -67,10 +66,9 @@ fun ConnectionScreen(onSuccess: (ip: String, port: String) -> Unit) {
             showDialog = true
             isLoading = true
 
-            // Masuram timpul de start pentru a calcula cat mai trebuie sa asteptam la final
             val startTime = System.currentTimeMillis()
 
-            // Executam incercarea de conectare
+            // Conectarea
             val result = connectToServer(targetIp, targetPort)
 
             if (result) {
@@ -129,15 +127,16 @@ fun ConnectionScreen(onSuccess: (ip: String, port: String) -> Unit) {
             val elapsedTime = System.currentTimeMillis() - startTime
             val remainingTime = 3000L - elapsedTime
 
-            // Daca operatiunea a durat mai putin de 3 secunde, asteptam diferenta
+            // Daca operatiune de conectare a durat mai multe de 3 secunde (elapsedTime > 3000)
             if (remainingTime > 0) {
+                // mai asteapta pana la 3 sec
                 delay(remainingTime)
             }
 
             isLoading = false
             showDialog = false
 
-            // Navigam doar daca rezultatul a fost de succes
+            // Go to IP:PORT
             if (result) {
                 onSuccess(targetIp, targetPort)
             }
@@ -168,15 +167,14 @@ fun ConnectionScreen(onSuccess: (ip: String, port: String) -> Unit) {
                                     val finalIp = host
                                     val finalPort = if (portVal == "-1") "5000" else portVal
 
-                                    // Actualizam UI-ul
+                                    // Actualizeaza UI-ul
                                     ipAddress = finalIp
                                     port = finalPort
 
-                                    // Declansam conexiunea automat dupa scanare
+                                    // Conectare dupa scanare
                                     performConnection(finalIp, finalPort)
                                 }
                             } catch (e: Exception) {
-                                // Format invalid
                             }
                         }
                 },

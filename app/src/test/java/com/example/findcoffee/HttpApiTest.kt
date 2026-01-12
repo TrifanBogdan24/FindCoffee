@@ -34,8 +34,8 @@ class HttpApiTest {
     }
 
     @Test
-    fun `test api root connectivity (Endpoint 0)`() {
-        // Pregatim un raspuns simulat pentru /api
+    fun `test api root connectivity`() {
+        // Pregateste raspuns simulat pentru /api
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
 
         val connection = URL(baseUrl).openConnection() as HttpURLConnection
@@ -43,8 +43,8 @@ class HttpApiTest {
     }
 
     @Test
-    fun `test fetch coffee recipes (Endpoint 1)`() {
-        // Simulam JSON-ul returnat de Flask pentru /api/coffee_recipes
+    fun `test fetch coffee recipes`() {
+        // Simuleaza JSON-ul returnat de request-ul /api/coffee_recipes
         val mockJson = """
         [
             {
@@ -62,7 +62,7 @@ class HttpApiTest {
             .setBody(mockJson)
             .addHeader("Content-Type", "application/json"))
 
-        // Executam cererea catre URL-ul simulat
+        // Executa request-ul catre URL-ul simulat
         val response = URL("$baseUrl/coffee_recipes").readText()
         val jsonArray = JSONArray(response)
 
@@ -71,8 +71,8 @@ class HttpApiTest {
     }
 
     @Test
-    fun `test category not found returns 404 (Endpoint 4)`() {
-        // Simulam eroarea 404 din Flask
+    fun `test category not found returns 404`() {
+        // Simuleaza eroarea HHTP 404
         val errorJson = "{\"error\": \"Category not found\"}"
         mockWebServer.enqueue(MockResponse()
             .setResponseCode(404)
@@ -83,7 +83,7 @@ class HttpApiTest {
     }
 
     @Test
-    fun `test get coffee names (Endpoint 2)`() {
+    fun `test get coffee names`() {
         val mockJson = "[\"Espresso\", \"Cappuccino\", \"Latte\"]"
         mockWebServer.enqueue(MockResponse().setBody(mockJson))
 
@@ -95,8 +95,8 @@ class HttpApiTest {
     }
 
     @Test
-    fun `test image endpoint construction (Endpoint 10)`() {
-        // Verificam doar daca URL-ul este construit corect conform rutei Flask
+    fun `test image endpoint construction`() {
+        // Verificare: URL-ul sa fie construit corect
         val coffeeName = "caffe_latte"
         val expectedRoute = "/api/images/coffee_list/$coffeeName"
 

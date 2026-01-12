@@ -63,7 +63,7 @@ fun CoffeeStepsScreen(
     var steps by remember { mutableStateOf<List<Step>>(emptyList()) }
     var currentStep by remember { mutableStateOf(1) }
 
-    // Fetch steps from DB on load
+    // Fetch 'pasii de preparare' din DB
     LaunchedEffect(Unit) {
         steps = getCoffeeStepsFromDb(context, coffeeName)
     }
@@ -184,7 +184,7 @@ fun CoffeeStepsScreen(
     }
 }
 
-// Fetch steps from local Room database
+// Fetch 'pasii de preparare' din DB
 suspend fun getCoffeeStepsFromDb(context: android.content.Context, coffeeName: String): List<Step> =
     withContext(Dispatchers.IO) {
         try {

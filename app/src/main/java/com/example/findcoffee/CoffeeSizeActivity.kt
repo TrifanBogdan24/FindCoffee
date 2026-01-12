@@ -52,7 +52,7 @@ fun CoffeeSizeScreen(ip: String, port: String, coffeeName: String, onClose: () -
     var sizes by remember { mutableStateOf<List<String>>(emptyList()) }
     var selectedSize by remember { mutableStateOf<String?>(null) }
 
-    // Fetch sizes din DB
+    // Fetch coffee sizes din Room DB
     LaunchedEffect(Unit) {
         sizes = getCoffeeSizesFromDb(context, coffeeName)
     }

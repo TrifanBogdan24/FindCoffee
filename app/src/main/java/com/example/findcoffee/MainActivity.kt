@@ -13,19 +13,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Pasul 1: Fortam deconectarea utilizatorului la fiecare lansare a aplicatiei
-        // Astfel, ecranul de Login va aparea de fiecare data, indiferent de sesiunile vechi
+        // Forteaza deconectare: ecranul de Login va aparea de fiecare data,
+        // la lansarea aplicatiei, indiferent de sesiunile vechi
         Firebase.auth.signOut()
 
         setContent {
             FindCoffeeTheme {
-                // Pasul 2: Definim starea pentru a urmari daca login-ul a reusit
-                // Initial este null deoarece am dat signOut mai sus
                 var isLoggedIn by remember { mutableStateOf(false) }
 
                 if (!isLoggedIn) {
-                    // Afisam ecranul de Login
-                    // Cand login-ul reuseste in LoginScreen, acesta apeleaza onLoginSuccess
+                    // Ecranul de Login: dupa logare -> apeleaza onLoginSuccess
                     LoginScreen(onLoginSuccess = {
                         isLoggedIn = true
                         navigateToConnect()
@@ -37,7 +34,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Functie responsabila pentru navigarea catre ConnectActivity.
-     * Folosim finish() pentru a scoate MainActivity din stiva de activitati,
+     * Apel finish() pentru a scoate MainActivity din stiva de activitati,
      * astfel incat utilizatorul sa nu revina la login apasand butonul 'Back'.
      */
     private fun navigateToConnect() {

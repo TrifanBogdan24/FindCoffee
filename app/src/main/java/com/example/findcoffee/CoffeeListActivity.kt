@@ -59,7 +59,7 @@ class CoffeeListActivity : ComponentActivity() {
                 CheckInternetConnection()
                 Check_HTTP_ServerConnection(ip = ip, port = port)
 
-                // Folosim Scaffold pentru a pozitiona FloatingActionButton corect
+                // Scaffold pentru a pozitiona FLoatingActionButton corect
                 Scaffold(
                     floatingActionButton = {
                         FloatingActionButton(
@@ -119,7 +119,7 @@ fun CoffeeListScreen(
         }
 
         if (filteredCoffees.isEmpty()) {
-            // Lottie animation when no results
+            // Animatie Lottie atunci cand Search-ul nu intoarce niciun rezultat
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -136,7 +136,7 @@ fun CoffeeListScreen(
                 )
             }
         } else {
-            // Show coffee list
+            // Afiseaza lista de cafele
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -146,7 +146,7 @@ fun CoffeeListScreen(
                 items(filteredCoffees) { coffee ->
                     CoffeeCard(coffeeName = coffee, ip = ip, port = port, highlight = searchQuery)
                 }
-                // Adaugam un spacer la final pentru ca FAB-ul sa nu acopere ultima cafea
+                // Spacer la final pentru a nu acoperi ultima cafea
                 item { Spacer(modifier = Modifier.height(80.dp)) }
             }
         }
@@ -236,7 +236,8 @@ fun buildHighlightedText(text: String, query: String): androidx.compose.ui.text.
     return annotated
 }
 
-// Fetch coffee names from Room database
+
+// Un SELECT * din Room database pentru a lua numele de cafele
 suspend fun getCoffeesFromDb(context: android.content.Context): List<String> =
     withContext(Dispatchers.IO) {
         val db = CoffeeDatabase.getDatabase(context)

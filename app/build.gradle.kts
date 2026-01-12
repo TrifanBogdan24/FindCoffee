@@ -76,11 +76,11 @@ dependencies {
     // Pentru Flutter:
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth-ktx") // Autentificare
-    implementation("com.google.firebase:firebase-firestore-ktx") // Bază de date
+    implementation("com.google.firebase:firebase-auth-ktx")       // Autentificare
+    implementation("com.google.firebase:firebase-firestore-ktx")  // Baza de date
 
 
-    // Teste Unitare Locale (folderul 'test')
+    // Teste Unitare
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.10.3")
     testImplementation("androidx.test:core:1.5.0")
